@@ -19,7 +19,7 @@ contract, see `Originating the contract`.
 ```bash
 EXECLAMBDA_ADDRESS="KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw"
 
-alias alpha-view="./lorentz-contract-view.rb \
+alias tz-view="./lorentz-contract-view.rb \
   'tezos-client -A rpcalpha.tzbeta.net -P 443 -S' \
   $EXECLAMBDA_ADDRESS $ALICE_ADDRESS"
 ```
@@ -55,13 +55,13 @@ Entrypoints for contract KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ:
 E.g. `getBalance` accepts an `address` and
 a callback contract accepting a `nat`.
 
-Finally, run `alpha-view` with:
+Finally, run `tz-view` with:
 - The contract address
 - The entrypoint name
 - The view parameter
 
 ```bash
-❯❯❯ alpha-view $FA12_ADDRESS 'getTotalSupply' 'Unit'
+❯❯❯ tz-view $FA12_ADDRESS 'getTotalSupply' 'Unit'
 
 Running:
 ...
