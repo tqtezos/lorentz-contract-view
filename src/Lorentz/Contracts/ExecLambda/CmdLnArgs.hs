@@ -27,6 +27,7 @@ import Michelson.Macro
 import Michelson.TypeCheck
 import Util.IO
 
+import Fmt (prettyLn)
 import Control.Monad.Trans.Reader
 import qualified Options.Applicative as Opt
 import Data.Text (Text)
@@ -38,6 +39,21 @@ import Text.Megaparsec (eof)
 
 import qualified Lorentz.Contracts.ExecLambda as ExecLambda
 import qualified Lorentz.Contracts.ConstView as ConstView
+
+
+data IsView (t :: T) where
+  IsView :: Sing a -> Sing b -> IsView ('TPair a ('TContract b))
+
+isView :: Sing t -> Either String (IsView t)
+isView st =
+  case st of
+    STPair sa sb ->
+      case sb of
+        STContract sb' -> return $ IsView sa sb'
+        _ ->
+          Left $ "Expected STContract, but found: " ++ show (fromSing sb)
+    _ -> Left $ "Expected STPair, but found: " ++ show (fromSing st)
+
 
 assertOpAbsense :: forall (t :: T) a. SingI t => (HasNoOp t => a) -> a
 assertOpAbsense f =
@@ -173,6 +189,7 @@ singIT (STBigMap st su) =
 data CmdLnArgs
   = Print (Maybe FilePath) Bool
   | PrintConstView Natural (Maybe FilePath) Bool
+  | ViewToParams (SomeSing T)
   | ViewToVoid
       { execLambda :: Address
       , parameterType :: SomeSing T
@@ -278,6 +295,7 @@ argParser :: Opt.Parser CmdLnArgs
 argParser = Opt.hsubparser $ mconcat
   [ printSubCmd
   , printConstViewSubCmd
+  , viewToParamsSubCmd
   , viewToVoidSubCmd
   ]
   where
@@ -298,6 +316,14 @@ argParser = Opt.hsubparser $ mconcat
         outputOptions <*>
         onelineOption)
       "Dump the ConstView contract (specialized to 'nat') in form of Michelson code"
+
+    viewToParamsSubCmd =
+      mkCommandParser "view-to-params"
+      (ViewToParams <$>
+        parseSomeT "parameter"
+      )
+      ("Convert a Michelson parameter type to arguments to a View, i.e. " <>
+       "convert it into the form: (pair FOO (contract BAR))")
 
     viewToVoidSubCmd =
       mkCommandParser "view-to-void"
@@ -372,6 +398,25 @@ runCmdLnArgs = \case
   PrintConstView x mOutput forceOneLine ->
     maybe TL.putStrLn writeFileUtf8 mOutput $
     printLorentzContract forceOneLine $ ConstView.constViewContract x
+  ViewToParams (SomeSing st) ->
+    case either (error . T.pack) id $ isView st of
+      IsView sa sb -> do
+        prettyLn $ fromSing sa
+        prettyLn $ fromSing sb
+
+-- data IsView (t :: T) where
+--   IsView :: Sing a -> Sing b -> IsView ('TPair a ('TContract b))
+
+-- isView :: Sing t -> Either String (IsView t)
+-- isView st =
+--   case st of
+--     STPair sa sb ->
+--       case sb of
+--         STContract sb' -> return $ IsView sa sb'
+--         _ ->
+--           Left $ "Expected STContract, but found: " ++ show (fromSing sb')
+--     _ -> Left $ "Expected STPair, but found: " ++ show (fromSing st)
+
   ViewToVoid {..} ->
     case (parameterType, callbackType) of
       (SomeSing (sa :: Sing a), SomeSing (sr :: Sing r)) ->

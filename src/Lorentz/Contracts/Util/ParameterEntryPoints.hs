@@ -1,5 +1,3 @@
--- {-# LANGUAGE RebindableSyntax #-}
-
 {-# OPTIONS -Wno-missing-export-lists -Wno-unused-do-bind -Wno-orphans #-}
 
 module Lorentz.Contracts.Util.ParameterEntryPoints where
@@ -9,8 +7,6 @@ import Michelson.Text
 import Michelson.Typed.Scope
 import Michelson.Typed.Instr
 import Michelson.Typed.Value
-
--- import Lorentz.Contracts.Util.Address ()
 
 import Data.Coerce
 import Prelude (Enum(..), id)
@@ -25,12 +21,6 @@ instance IsoValue (Value' Instr t) where
   type ToT (Value' Instr t) = t
   toVal = id
   fromVal = id
-
--- -- Lorentz.Contracts.Util
--- instance IsoCValue (CValue t) where
---   type ToCT (CValue t) = t
---   toCVal = id
---   fromCVal = id
 
 instance ParameterEntryPoints Natural where
   parameterEntryPoints = pepNone

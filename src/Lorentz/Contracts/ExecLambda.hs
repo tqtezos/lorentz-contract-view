@@ -18,10 +18,29 @@ import Text.Show
 
 import qualified Data.Text as T
 
-contractAddr :: forall p s. NiceParameter p => Address -> s :-> ContractRef p & s
-contractAddr contractAddr' = do
-  push contractAddr'
-  assertContract
+-- contractAddr :: forall p s. NiceParameter p => Address -> s :-> ContractRef p & s
+-- contractAddr contractAddr' = do
+--   push contractAddr'
+--   assertContract
+
+---- | Push a value of @contract@ type.
+----
+---- Doing this via 'push' instruction is not possible, so we need to perform
+---- extra actions here.
+----
+---- Aside from @contract@ value itself you will need to specify which error to
+---- throw in case this value is not valid.
+--pushContractRef
+--  :: NiceParameter arg
+--  => (forall s0. Address : s :-> s0)
+--  -> ContractRef arg
+--  -> (s :-> ContractRef arg : s)
+--pushContractRef onContractNotFound (ContractRef addr sepc :: ContractRef arg) =
+--  withDict (niceParameterEvi @arg) $
+--    push addr # dup #
+--    I (CONTRACT starNotes (sepcName sepc)) #
+--    ifNone onContractNotFound (dip drop)
+
 
 assertContract :: forall p s. NiceParameter p => Address & s :-> ContractRef p & s
 assertContract = do
@@ -30,15 +49,37 @@ assertContract = do
     "Not " <> T.pack (show $ typeRep $ Proxy @(ToT p))
 
 callContractAddressNoMutez :: forall p s. NiceParameter p
-  => Address
+  => ContractRef p
   -> p & s :-> [Operation] & s
 callContractAddressNoMutez contractAddr' = do
   dip $ do
-    contractAddr contractAddr'
+    -- contractAddr contractAddr'
+    pushContractRef
+      failWith
+      contractAddr'
     push (toEnum 0 :: Mutez)
   transferTokens @p
   dip $ nil @Operation
   cons
+
+---- | Push a value of @contract@ type.
+----
+---- Doing this via 'push' instruction is not possible, so we need to perform
+---- extra actions here.
+----
+---- Aside from @contract@ value itself you will need to specify which error to
+---- throw in case this value is not valid.
+--pushContractRef
+--  :: NiceParameter arg
+--  => (forall s0. Address : s :-> s0)
+--  -> ContractRef arg
+--  -> (s :-> ContractRef arg : s)
+--pushContractRef onContractNotFound (ContractRef addr sepc :: ContractRef arg) =
+--  withDict (niceParameterEvi @arg) $
+--    push addr # dup #
+--    I (CONTRACT starNotes (sepcName sepc)) #
+--    ifNone onContractNotFound (dip drop)
+
 
 newtype Parameter
   = ExecLambda (Lambda () ([Operation], ()))
@@ -96,11 +137,12 @@ callbackToFailWithParameter toParam' execLambdaAddr' callingBackContractAddr' = 
         car
         assertContract @p
         toParam'
-        callContractAddressNoMutez @a (toAddress callingBackContractAddr')
+        callContractAddressNoMutez @a callingBackContractAddr'
         dip unit
         pair
     apply
-    callContractAddressNoMutez @(Lambda () ([Operation], ())) (toAddress execLambdaAddr')
+    callContractAddressNoMutez @(Lambda () ([Operation], ())) $
+      coerceContractRef @Parameter @(Lambda () ([Operation], ())) execLambdaAddr'
   cons
   dip unit
   pair
@@ -115,11 +157,13 @@ exampleParameter = ExecLambda $ do
       lambda @('[(Address, ())]) @('[([Operation], ())]) $ do
         car
         assertContract @Natural
-        callContractAddressNoMutez @(ContractRef Natural) "KT1WMgBpt12qcvsAWEEJCTkKpDCgJsqKup8X"
+        callContractAddressNoMutez @(ContractRef Natural)
+          (toContractRef @(ContractRef Natural) @Address "KT1WMgBpt12qcvsAWEEJCTkKpDCgJsqKup8X")
         dip unit
         pair
     apply
-    callContractAddressNoMutez @(Lambda () ([Operation], ())) "KT1JCkYWTEv3YLF6JKc9XKiBHMRsjY2w1afk"
+    callContractAddressNoMutez @(Lambda () ([Operation], ()))
+      (toContractRef @(Lambda () ([Operation], ())) @Address "KT1JCkYWTEv3YLF6JKc9XKiBHMRsjY2w1afk")
   cons
   dip unit
   pair

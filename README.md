@@ -8,6 +8,68 @@ The "./stack" file is a pointer to a compatible version of `stack`: `1.9.3`.
 It must be configured for `morley` versions that require
 older versions of `stack`.
 
+Run `./stack build` to build the CLI tool(s).
+
+
+# Really quick start
+
+You'll need to configure the CLI tool with an address of an `ExecLambda`
+contract, see `Originating the contract`.
+
+```bash
+EXECLAMBDA_ADDRESS="KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw"
+
+alias alpha-view="./lorentz-contract-view.rb \
+  'tezos-client -A rpcalpha.tzbeta.net -P 443 -S' \
+  $EXECLAMBDA_ADDRESS $ALICE_ADDRESS"
+```
+
+
+We'll also need a contract address to query:
+
+```bash
+FA12_ADDRESS="KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ"
+```
+
+The client can list all of the (named) entrypoints and their types:
+
+```bash
+❯❯❯ alpha-client get contract entrypoints for $FA12_ADDRESS
+
+Entrypoints for contract KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ: 
+  transferViaProxy: (pair address (pair address (pair address nat)))
+  transfer: (pair address (pair address nat))
+  setProxy: address
+  setPause: bool
+  setAdministrator: address
+  mint: (pair address nat)
+  getTotalSupply: (pair unit (contract nat))
+  getBalance: (pair address (contract nat))
+  getAllowance: (pair (pair address address) (contract nat))
+  getAdministrator: (pair unit (contract address))
+  burn: (pair address nat)
+  approveViaProxy: (pair address (pair address nat))
+  approve: (pair address nat)
+```
+
+E.g. `getBalance` accepts an `address` and
+a callback contract accepting a `nat`.
+
+Finally, run `alpha-view` with:
+- The contract address
+- The entrypoint name
+- The view parameter
+
+```bash
+❯❯❯ alpha-view $FA12_ADDRESS 'getTotalSupply' 'Unit'
+
+Running:
+...
+
+Result:
+12
+```
+
 
 # The CLI
 
