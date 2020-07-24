@@ -22,7 +22,7 @@ class String
 end
 
 def fa121_address()
-  "KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ"
+  "KT18apu7iDnqnUeXdMv3ZVjs81DTPWK6f1Me"
 end
 
 def system_lines(cmd, allow_failure=false)
@@ -59,6 +59,29 @@ class Enumerator
     next_result
   end
 
+  def get_entrypoint(initial_line=nil)
+    entrypoint_regexp = /^\s*(?<entrypoint_name>\w+):\s+(?<entrypoint_type>.*)$/
+    current_line = initial_line || self.next_nonempty
+    output = { }
+    unless (match_result = entrypoint_regexp.match(current_line)).nil?
+      output[:entrypoint_name] = match_result[:entrypoint_name]
+      entrypoint_type_output = [match_result[:entrypoint_type]]
+      while true do
+        current_line = self.next_nonempty
+        if entrypoint_regexp.match?(current_line)
+          output[:leftovers] = current_line
+          output[:entrypoint_type] = entrypoint_type_output
+          break
+        else
+          entrypoint_type_output << current_line
+        end
+      end
+    else
+      raise "Expected all the first line to match: #{entrypoint_regexp.inspect},\n but found: #{current_line}"
+    end
+    output
+  end
+
   def get_entrypoints(contract_addr=fa121_address)
     header_line = self.next_nonempty
     header_regexp = /^\s*Entrypoints for contract #{contract_addr}:\s*$/
@@ -68,15 +91,23 @@ class Enumerator
 
     entrypoint_regexp = /^\s*(?<entrypoint_name>\w+):\s+(?<entrypoint_type>.*)$/
     Enumerator.new do |y|
+      current_line = nil
       while true do
         begin
-          current_line = self.next_nonempty
-          unless (match_result = entrypoint_regexp.match(current_line)).nil?
-            y << [match_result[:entrypoint_name], match_result[:entrypoint_type].rstrip]
-          else
-            p current_line
-            raise "Expected all but the first line to match: #{entrypoint_regexp.inspect}, but found: #{current_line}"
-          end
+          output = self.get_entrypoint(current_line)
+          current_line = output[:leftovers]
+          y << [output[:entrypoint_name], output[:entrypoint_type].join(' ')]
+          # raise 'hi!'
+          # y << self.get_entrypoint
+
+          # current_line = self.next_nonempty
+          # p current_line
+          # unless (match_result = entrypoint_regexp.match(current_line)).nil?
+          #   y << [match_result[:entrypoint_name], match_result[:entrypoint_type].rstrip]
+          # else
+          #   p current_line
+          #   raise "Expected all but the first line to match: #{entrypoint_regexp.inspect}, but found: #{current_line}"
+          # end
         rescue StopIteration
           break
         end

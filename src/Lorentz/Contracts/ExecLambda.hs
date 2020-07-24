@@ -18,42 +18,20 @@ import Text.Show
 
 import qualified Data.Text as T
 
--- contractAddr :: forall p s. NiceParameter p => Address -> s :-> ContractRef p & s
--- contractAddr contractAddr' = do
---   push contractAddr'
---   assertContract
-
----- | Push a value of @contract@ type.
-----
----- Doing this via 'push' instruction is not possible, so we need to perform
----- extra actions here.
-----
----- Aside from @contract@ value itself you will need to specify which error to
----- throw in case this value is not valid.
---pushContractRef
---  :: NiceParameter arg
---  => (forall s0. Address : s :-> s0)
---  -> ContractRef arg
---  -> (s :-> ContractRef arg : s)
---pushContractRef onContractNotFound (ContractRef addr sepc :: ContractRef arg) =
---  withDict (niceParameterEvi @arg) $
---    push addr # dup #
---    I (CONTRACT starNotes (sepcName sepc)) #
---    ifNone onContractNotFound (dip drop)
-
-
+-- | Assert that an `Address` resolves to a `ContractRef` of the given
+-- `NiceParameter` type
 assertContract :: forall p s. NiceParameter p => Address & s :-> ContractRef p & s
 assertContract = do
   contract @p
   assertSome . mkMTextUnsafe $
     "Not " <> T.pack (show $ typeRep $ Proxy @(ToT p))
 
+-- | Call a `ContractRef` with no `Mutez`
 callContractAddressNoMutez :: forall p s. NiceParameter p
   => ContractRef p
   -> p & s :-> [Operation] & s
 callContractAddressNoMutez contractAddr' = do
   dip $ do
-    -- contractAddr contractAddr'
     pushContractRef
       failWith
       contractAddr'
@@ -62,25 +40,9 @@ callContractAddressNoMutez contractAddr' = do
   dip $ nil @Operation
   cons
 
----- | Push a value of @contract@ type.
-----
----- Doing this via 'push' instruction is not possible, so we need to perform
----- extra actions here.
-----
----- Aside from @contract@ value itself you will need to specify which error to
----- throw in case this value is not valid.
---pushContractRef
---  :: NiceParameter arg
---  => (forall s0. Address : s :-> s0)
---  -> ContractRef arg
---  -> (s :-> ContractRef arg : s)
---pushContractRef onContractNotFound (ContractRef addr sepc :: ContractRef arg) =
---  withDict (niceParameterEvi @arg) $
---    push addr # dup #
---    I (CONTRACT starNotes (sepcName sepc)) #
---    ifNone onContractNotFound (dip drop)
-
-
+-- | An `ExecLambda` `Parameter` is a `Lambda` accepting no arguments (unit)
+-- and returning a list of `Operation`'s in the form expected by a
+-- Michelson contract
 newtype Parameter
   = ExecLambda (Lambda () ([Operation], ()))
   deriving stock (Generic)
@@ -90,6 +52,7 @@ newtype Parameter
 instance ParameterEntryPoints Parameter where
   parameterEntryPoints = pepNone
 
+-- | The `ExecLambda` contract: it simply runs the provided `Lambda`
 execLambdaContract :: Contract Parameter ()
 execLambdaContract = coerceParameter $ do
   car
@@ -99,11 +62,14 @@ execLambdaContract = coerceParameter $ do
     coerceParameter :: Contract (Lambda () ([Operation], ())) () -> Contract Parameter ()
     coerceParameter = coerce
 
+-- | Convert an argument and `Convert` to a `View`
 toView :: forall a r s. a & ContractRef r & s :-> View a r & s
 toView = do
   pair
   coerce_ @(a, ContractRef r) @(View a r)
 
+-- | Call a `View` parameter with a `failWith` contract that's originated during
+-- the transaction, emulating the behavior of a `Void_` entrypoint
 viewToVoidParameter :: forall a r. (NiceConstant a, NiceParameter a, NiceParameter r, ParameterEntryPoints r)
   => ContractRef Parameter
   -> ContractRef (View a r)
@@ -147,6 +113,7 @@ callbackToFailWithParameter toParam' execLambdaAddr' callingBackContractAddr' = 
   dip unit
   pair
 
+-- | An example `Parameter`, see `callbackToFailWithParameter` for more detail
 exampleParameter :: Parameter
 exampleParameter = ExecLambda $ do
   push (toEnum 0 :: Mutez)

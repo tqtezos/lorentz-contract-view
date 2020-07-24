@@ -1,10 +1,14 @@
 <<: !include "./hpack/module.yaml"
 
-<<: *meta
 name:                lorentz-contract-view
 version:             0.1.0.1
 github:              "tqtezos/lorentz-contract-view"
+git:                 git@github.com:tqtezos/lorentz-contract-view.git
+homepage:            https://github.com/tqtezos/lorentz-contract-view
 license:             BSD3
+license-file:        LICENSE
+category:            Blockchain, Network
+synopsis:            Access Michelson Contract View parameters without paying gas
 author:              "Michael J. Klein TQ Tezos"
 maintainer:          "michael@tqgroup.io"
 copyright:           "2019 Michael J. Klein TQ Tezos"

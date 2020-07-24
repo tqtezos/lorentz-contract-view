@@ -40,10 +40,11 @@ import Text.Megaparsec (eof)
 import qualified Lorentz.Contracts.ExecLambda as ExecLambda
 import qualified Lorentz.Contracts.ConstView as ConstView
 
-
+-- | Predicate asserting that a type is a `View`
 data IsView (t :: T) where
   IsView :: Sing a -> Sing b -> IsView ('TPair a ('TContract b))
 
+-- | Calculate `IsView` for the given type or fail with an error message
 isView :: Sing t -> Either String (IsView t)
 isView st =
   case st of
@@ -54,32 +55,35 @@ isView st =
           Left $ "Expected STContract, but found: " ++ show (fromSing sb)
     _ -> Left $ "Expected STPair, but found: " ++ show (fromSing st)
 
-
+-- | Assert `HasNoOp`
 assertOpAbsense :: forall (t :: T) a. SingI t => (HasNoOp t => a) -> a
 assertOpAbsense f =
   case opAbsense (sing @t) of
     Nothing -> error "assertOpAbsense"
     Just Dict -> forbiddenOp @t f
 
+-- | Assert `HasNoContract`
 assertContractTypeAbsense :: forall (t :: T) a. SingI t => (HasNoContract t => a) -> a
 assertContractTypeAbsense f =
   case contractTypeAbsense  (sing @t) of
     Nothing -> error "assertContractTypeAbsense"
     Just Dict -> forbiddenContractType  @t f
 
+-- | Assert `HasNoBigMap`
 assertBigMapAbsense :: forall (t :: T) a. SingI t => (HasNoBigMap t => a) -> a
 assertBigMapAbsense f =
   case bigMapAbsense (sing @t) of
     Nothing -> error "assertBigMapAbsense"
     Just Dict -> forbiddenBigMap @t f
 
+-- | Assert `HasNoNestedBigMaps`
 assertNestedBigMapAbsense :: forall (t :: T) a. SingI t => (HasNoNestedBigMaps t => a) -> a
 assertNestedBigMapAbsense f =
   case nestedBigMapsAbsense (sing @t) of
     Nothing -> error "assertNestedBigMapAbsense"
     Just Dict -> forbiddenNestedBigMaps @t f
 
-
+-- | Forall `CT`, if `Sing` then `Typeable`
 singTypeableCT :: forall (t :: CT). Sing t -> Dict (Typeable t)
 singTypeableCT SCInt = Dict
 singTypeableCT SCNat = Dict
@@ -91,6 +95,7 @@ singTypeableCT SCKeyHash = Dict
 singTypeableCT SCTimestamp = Dict
 singTypeableCT SCAddress = Dict
 
+-- | Forall `T`, if `Sing` then `Typeable`
 singTypeableT :: forall (t :: T). Sing t -> Dict (Typeable t)
 singTypeableT (STc ct) =
   withDict (singTypeableCT ct) $
@@ -133,6 +138,7 @@ singTypeableT (STBigMap st su) =
   withDict (singTypeableT su) $
   Dict
 
+-- | Forall `CT`, if `Sing` then `SingI`
 singICT :: forall (t :: CT). Sing t -> Dict (SingI t)
 singICT SCInt = Dict
 singICT SCNat = Dict
@@ -144,6 +150,7 @@ singICT SCKeyHash = Dict
 singICT SCTimestamp = Dict
 singICT SCAddress = Dict
 
+-- | Forall `T`, if `Sing` then `SingI`
 singIT :: forall (t :: T). Sing t -> Dict (SingI t)
 singIT (STc ct) =
   withDict (singICT ct) $
@@ -186,6 +193,7 @@ singIT (STBigMap st su) =
   withDict (singIT su) $
   Dict
 
+-- | Parsed command line arguments
 data CmdLnArgs
   = Print (Maybe FilePath) Bool
   | PrintConstView Natural (Maybe FilePath) Bool
@@ -198,6 +206,7 @@ data CmdLnArgs
       , viewParameter :: Text
       }
 
+-- | Make a type non-explicit
 unExplicitType :: U.Type -> U.T
 unExplicitType =
   \case
@@ -205,12 +214,15 @@ unExplicitType =
     -- U.TypeParameter -> error "U.TypeParameter"
     -- U.TypeStorage -> error "U.TypeStorage"
 
+-- | Convert a `U.Comparable` to `CT`
 fromUntypedComparable :: U.Comparable -> CT
 fromUntypedComparable (U.Comparable ct _) = ct
 
+-- | Convert a `U.Type` to `T`
 fromUntypedT' :: U.Type -> T
 fromUntypedT' = fromUntypedT . unExplicitType
 
+-- | Convert a `U.T` to `T`
 fromUntypedT :: U.T -> T
 fromUntypedT (U.Tc ct) = Tc ct
 fromUntypedT U.TKey = TKey
@@ -228,11 +240,12 @@ fromUntypedT (U.TLambda x y) = TLambda (fromUntypedT' x) (fromUntypedT' y)
 fromUntypedT (U.TMap ct x) = TMap (fromUntypedComparable ct) $ fromUntypedT' x
 fromUntypedT (U.TBigMap ct x) = TBigMap (fromUntypedComparable ct) $ fromUntypedT' x
 
+-- | Parse some `T`
 parseSomeT :: String -> Opt.Parser (SomeSing T)
 parseSomeT name =
   (\typeStr ->
     let parsedType = parseNoEnv
-          type_ -- _ -- explicitType
+          type_
           name
           typeStr
      in let type' = either (error . T.pack . show) unExplicitType parsedType
@@ -291,6 +304,7 @@ outputOptions = optional . Opt.strOption $ mconcat
   , Opt.help "File to use as output. If not specified, stdout is used."
   ]
 
+-- | Parse `CmdLnArgs`
 argParser :: Opt.Parser CmdLnArgs
 argParser = Opt.hsubparser $ mconcat
   [ printSubCmd
@@ -355,6 +369,7 @@ argParser = Opt.hsubparser $ mconcat
         )
       )
 
+-- | `Opt.InfoMod` for `CmdLnArgs`
 infoMod :: Opt.InfoMod CmdLnArgs
 infoMod = mconcat
   [ Opt.fullDesc
@@ -371,6 +386,7 @@ parseTypeCheckValue =
   runTypeCheckIsolated . flip runReaderT def . typeVerifyValue . expandValue <$>
   (value <* eof)
 
+-- | Make `ExecLambda.viewToVoidParameter` with untyped inputs
 runViewToVoid :: forall (a :: T) (r :: T). (ProperConstantBetterErrors a, ProperParameterBetterErrors a, ProperParameterBetterErrors r)
   => Address
   -> EpAddress
@@ -390,6 +406,7 @@ runViewToVoid execLambda' viewEntrypoint' viewParameterText =
         (toContractRef @(View (Value a) (Value r)) viewEntrypoint')
         parsedValue
 
+-- | Run `CmdLnArgs`
 runCmdLnArgs :: CmdLnArgs -> IO ()
 runCmdLnArgs = \case
   Print mOutput forceOneLine ->
@@ -403,20 +420,6 @@ runCmdLnArgs = \case
       IsView sa sb -> do
         prettyLn $ fromSing sa
         prettyLn $ fromSing sb
-
--- data IsView (t :: T) where
---   IsView :: Sing a -> Sing b -> IsView ('TPair a ('TContract b))
-
--- isView :: Sing t -> Either String (IsView t)
--- isView st =
---   case st of
---     STPair sa sb ->
---       case sb of
---         STContract sb' -> return $ IsView sa sb'
---         _ ->
---           Left $ "Expected STContract, but found: " ++ show (fromSing sb')
---     _ -> Left $ "Expected STPair, but found: " ++ show (fromSing st)
-
   ViewToVoid {..} ->
     case (parameterType, callbackType) of
       (SomeSing (sa :: Sing a), SomeSing (sr :: Sing r)) ->

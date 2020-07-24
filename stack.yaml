@@ -16,18 +16,21 @@ extra-deps:
 - pretty-terminal-0.1.0.0
 - show-type-0.1.1
 - first-class-families-0.6.0.0@sha256:9d2a2a0092dfb8fd0e688b0b6bf71242fbc393c028b0b669d25ed387667490c2
-- git:
-    https://gitlab.com/morley-framework/morley.git
-    # ^ CI cannot use ssh, so we use http clone here
-  commit:
-    40dd07b9ffd9a5b1a6898708dd829a881f6ba02a # master
-  subdirs:
-    - .
-    - prelude
-    - morley-upgradeable
-    - morley-ledgers
-    - morley-ledgers-test
-    - indigo
+- morley-0.5.0
+- morley-prelude-0.3.0@sha256:9e9473ac14cfa206adf0a3700764c0251de05042f1fe45daf9cb8556079ae663
+
+# - git:
+#     https://gitlab.com/morley-framework/morley.git
+#     # ^ CI cannot use ssh, so we use http clone here
+#   commit:
+#     40dd07b9ffd9a5b1a6898708dd829a881f6ba02a # master
+#   subdirs:
+#     - .
+#     - prelude
+#     - morley-upgradeable
+#     - morley-ledgers
+#     - morley-ledgers-test
+#     - indigo
 
 nix:
   shell-file: shell.nix

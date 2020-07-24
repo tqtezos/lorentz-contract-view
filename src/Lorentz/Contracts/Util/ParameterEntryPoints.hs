@@ -3,17 +3,13 @@
 module Lorentz.Contracts.Util.ParameterEntryPoints where
 
 import Lorentz
-import Michelson.Text
 import Michelson.Typed.Scope
 import Michelson.Typed.Instr
 import Michelson.Typed.Value
 
-import Data.Coerce
-import Prelude (Enum(..), id)
+import Prelude (id)
 import Data.Typeable
-import Text.Show
 
-import qualified Data.Text as T
 import Data.Singletons
 
 -- Lorentz.Contracts.Util

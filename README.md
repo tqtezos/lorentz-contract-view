@@ -1,5 +1,6 @@
 
-See [`quick_start.md`](quick_start.md)
+See the [FA1.2 Lorentz Tutorial](https://assets.tqtezos.com/docs/token-contracts/fa12/3-fa12-lorentz/)
+for more detail.
 
 # Setup
 
@@ -13,43 +14,59 @@ Run `./stack build` to build the CLI tool(s).
 
 # Really quick start
 
+Originated copies of `ExecLambda`:
+
+- Carthagenet: [`KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1`](https://better-call.dev/carthagenet/KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1/code)
+- Mainnet (Carthage): [`KT1CPuTzwC7h7uLXd5WQmpMFso1HxrLBUtpE`](https://better-call.dev/mainnet/KT1CPuTzwC7h7uLXd5WQmpMFso1HxrLBUtpE/code)
+
 You'll need to configure the CLI tool with an address of an `ExecLambda`
 contract, see `Originating the contract`.
 
 ```bash
-EXECLAMBDA_ADDRESS="KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw"
+EXECLAMBDA_ADDRESS="KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1"
 
 alias tz-view="./lorentz-contract-view.rb \
   'tezos-client -A rpcalpha.tzbeta.net -P 443 -S' \
-  $EXECLAMBDA_ADDRESS $ALICE_ADDRESS"
+  $EXECLAMBDA_ADDRESS $BOB_ADDRESS"
 ```
 
 
 We'll also need a contract address to query:
 
 ```bash
-FA12_ADDRESS="KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ"
+FA12_ADDRESS="KT18apu7iDnqnUeXdMv3ZVjs81DTPWK6f1Me"
 ```
 
 The client can list all of the (named) entrypoints and their types:
 
 ```bash
-❯❯❯ alpha-client get contract entrypoints for $FA12_ADDRESS
+❯❯❯ tezos-client get contract entrypoints for $FA12_ADDRESS
 
-Entrypoints for contract KT1RUhPAABRhZBctcsWFtymyjpuBQdLTqaAQ: 
-  transferViaProxy: (pair address (pair address (pair address nat)))
-  transfer: (pair address (pair address nat))
-  setProxy: address
+Entrypoints for contract KT18apu7iDnqnUeXdMv3ZVjs81DTPWK6f1Me: 
+  default: (or (or (or (pair %transfer (address :from) (pair (address :to) (nat :value)))
+                       (pair %approve (address :spender) (nat :value)))
+                   (or (pair %getAllowance (pair (address :owner) (address :spender)) (contract nat))
+                       (or (pair %getBalance (address :owner) (contract nat))
+                           (pair %getTotalSupply unit (contract nat)))))
+               (or (or (bool %setPause)
+                       (or (address %setAdministrator) (pair %getAdministrator unit (contract address))))
+                   (or (pair %mint (address :to) (nat :value))
+                       (or (pair %burn (address :from) (nat :value))
+                           (pair %getMetadata
+                              (list nat)
+                              (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))))))
+  transfer: (pair (address :from) (pair (address :to) (nat :value)))
   setPause: bool
   setAdministrator: address
-  mint: (pair address nat)
+  mint: (pair (address :to) (nat :value))
   getTotalSupply: (pair unit (contract nat))
-  getBalance: (pair address (contract nat))
-  getAllowance: (pair (pair address address) (contract nat))
+  getMetadata: (pair (list nat)
+                     (contract (list (pair nat (pair string (pair string (pair nat (map string string))))))))
+  getBalance: (pair (address :owner) (contract nat))
+  getAllowance: (pair (pair (address :owner) (address :spender)) (contract nat))
   getAdministrator: (pair unit (contract address))
-  burn: (pair address nat)
-  approveViaProxy: (pair address (pair address nat))
-  approve: (pair address nat)
+  burn: (pair (address :from) (nat :value))
+  approve: (pair (address :spender) (nat :value))
 ```
 
 E.g. `getBalance` accepts an `address` and
@@ -67,7 +84,7 @@ Running:
 ...
 
 Result:
-12
+5
 ```
 
 
@@ -133,34 +150,34 @@ code { CAR;
 ## Running the origination
 
 ```bash
-❯❯❯ alpha-client --wait none originate contract ExecLambda \
+❯❯❯ tezos-client --wait none originate contract ExecLambda \
   transferring 0 from $ALICE_ADDRESS running \
-  "$(./stack exec -- lorentz-contract-view print --oneline)" \
+ "$(cat contracts/exec_lambda.tz | tr -d '\n')" \
   --burn-cap 0.303
 
 Waiting for the node to be bootstrapped before injection...
-Current head: BMXBZVZVvGao (timestamp: 2019-12-12T19:57:40-00:00, validation: 2019-12-12T19:58:08-00:00)
+Current head: BMXNZDPdnSNL (timestamp: 2020-07-24T20:51:54-00:00, validation: 2020-07-24T20:52:26-00:00)
 Node is bootstrapped, ready for injecting operations.
 Estimated gas: 11120 units (will add 100 for safety)
 Estimated storage: 303 bytes added (will add 20 for safety)
 Operation successfully injected in the node.
-Operation hash is 'onkUF7qTTGv3CrRs1FEAntfMcgPqQCrnVa8EBSDJCLHUAashb2V'
+Operation hash is 'ooLS9prYwHvf8ppZt5qCgxuwbjXqvi4YBDLoRRK45vswdc5Qnxd'
 NOT waiting for the operation to be included.
 Use command
-  tezos-client wait for onkUF7qTTGv3CrRs1FEAntfMcgPqQCrnVa8EBSDJCLHUAashb2V to be included --confirmations 30 --branch BMXBZVZVvGao9WgxmUj3zdpA2DCKLe4ivYbP5UjK44ip1Nwj9qt
+  tezos-client wait for ooLS9prYwHvf8ppZt5qCgxuwbjXqvi4YBDLoRRK45vswdc5Qnxd to be included --confirmations 30 --branch BLig2b8tmWMDL1CLhmUbnvCfjr4MMHLJbdfZGKmBzhu1e1iD4gw
 and/or an external block explorer to make sure that it has been included.
 This sequence of operations was run:
   Manager signed operations:
-    From: tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr
+    From: tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm
     Fee to the baker: ꜩ0.001397
-    Expected counter: 30719
+    Expected counter: 624003
     Gas limit: 11220
     Storage limit: 323 bytes
     Balance updates:
-      tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr ............ -ꜩ0.001397
-      fees(tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU,64) ... +ꜩ0.001397
+      tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm ............. -ꜩ0.001397
+      fees(tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU,289) ... +ꜩ0.001397
     Origination:
-      From: tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr
+      From: tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm
       Credit: ꜩ0
       Script:
         { parameter (lambda unit (pair (list operation) unit)) ;
@@ -170,22 +187,22 @@ This sequence of operations was run:
         No delegate for this contract
         This origination was successfully applied
         Originated contracts:
-          KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw
+          KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1
         Storage size: 46 bytes
         Paid storage size diff: 46 bytes
         Consumed gas: 11120
         Balance updates:
-          tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr ... -ꜩ0.046
-          tz1R3vJ5TV8Y5pVj8dicBR23Zv8JArusDkYr ... -ꜩ0.257
+          tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm ... -ꜩ0.046
+          tz1bDCu64RmcpWahdn9bWrDMi6cu7mXZynHm ... -ꜩ0.257
 
-New contract KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw originated.
+New contract KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1 originated.
 Contract memorized as ExecLambda.
 ```
 
 Make a `bash` alias for the address:
 
 ```bash
-EXECLAMBDA_ADDRESS="KT1NFUsGvAomSSNnKjps8RL1EjGKfWQmM4iw"
+EXECLAMBDA_ADDRESS="KT1PCtQTdgD44WsYgTzAUUztMcrDmPiSuSV1"
 ```
 
 
